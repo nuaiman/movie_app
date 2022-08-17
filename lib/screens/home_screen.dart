@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_movie_app/constant/style.dart';
+import 'package:flutter_movie_app/screens/error_page.dart';
 import 'package:flutter_movie_app/screens/map_screen.dart';
 import 'package:flutter_movie_app/screens/movie_screen.dart';
 import 'package:flutter_movie_app/screens/tv_screen.dart';
@@ -13,9 +16,35 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool ActiveConnection = false;
+  String T = "";
+  Future CheckUserConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        setState(() {
+          ActiveConnection = true;
+          T = "Turn off the data and repress again";
+        });
+      }
+    } on SocketException catch (_) {
+      setState(() {
+        ActiveConnection = false;
+        T = "Turn On the data and repress again";
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    CheckUserConnection();
+    super.initState();
+  }
+
   int _currentIndex = 0;
   @override
   Widget build(BuildContext context) {
+    CheckUserConnection();
     PageController _controller = PageController();
     void onTapIcon(int index) {
       _controller.animateToPage(index,
@@ -29,20 +58,22 @@ class _HomeScreenState extends State<HomeScreen> {
               title: _buildTitle(_currentIndex),
             )
           : null,
-      body: PageView(
-        controller: _controller,
-        children: const <Widget>[
-          MovieScreen(),
-          TVsScreen(),
-          WatchLists(),
-          MapScreen(),
-        ],
-        onPageChanged: (value) {
-          setState(() {
-            _currentIndex = value;
-          });
-        },
-      ),
+      body: !ActiveConnection
+          ? const ErrorScreen()
+          : PageView(
+              controller: _controller,
+              children: const [
+                MovieScreen(),
+                TVsScreen(),
+                WatchLists(),
+                MapScreen(),
+              ],
+              onPageChanged: (value) {
+                setState(() {
+                  _currentIndex = value;
+                });
+              },
+            ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Style.primaryColor,
         selectedItemColor: Style.secondColor,
